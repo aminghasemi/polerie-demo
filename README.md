@@ -17,10 +17,22 @@ Lightweight operational dashboard for Pixelgenie DTG: sales demand, production o
 
 ## Demo dashboard
 
+**Live demo:** https://aminghasemi.github.io/polerie-demo/
+
+Deployed automatically from `main` via GitHub Actions (Settings → Pages → Source: GitHub Actions).
+
 ```bash
 cd dashboard
 npm install
 npm run dev
+```
+
+To preview the production build locally (with the same base path as GitHub Pages):
+
+```bash
+cd dashboard
+GITHUB_PAGES=true npm run build
+npx vite preview --base /polerie-demo/
 ```
 
 **Pages:**
