@@ -19,9 +19,9 @@ Lightweight operational dashboard for Pixelgenie DTG: sales demand, production o
 
 **Live demo:** https://aminghasemi.github.io/polerie-demo/
 
-Deployed automatically from `main` via GitHub Actions to the `gh-pages` branch.
+Deployed automatically from `main` via GitHub Actions.
 
-**One-time setup (required for the live URL):** open [repo Settings → Pages](https://github.com/aminghasemi/polerie-demo/settings/pages), set **Build and deployment → Deploy from a branch**, branch **`gh-pages`**, folder **`/ (root)`**, then Save. The site will be at https://aminghasemi.github.io/polerie-demo/ within a minute or two.
+**One-time setup:** open [Settings → Pages](https://github.com/aminghasemi/polerie-demo/settings/pages) and set **Build and deployment → Source: GitHub Actions** (not “Deploy from a branch”). If you previously used the `gh-pages` branch, switch to GitHub Actions — branch deploy conflicts with this workflow and causes `deploy-pages` failures. Live URL: https://aminghasemi.github.io/polerie-demo/
 
 ```bash
 cd dashboard
