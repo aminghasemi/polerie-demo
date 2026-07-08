@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { CrmCustomer } from '../../types/crm'
+import { ONBOARDING_STATUS_LABELS } from '../../types/crm'
+import { onboardingStatusStyle } from '../../data/crmDefaults'
 import { formatGbp, statusLabel, statusStyle } from '../../utils/crm'
 import { EmptyState } from '../EmptyState'
 
@@ -71,6 +73,9 @@ export function CrmCustomerTable({ customers, onSelectCustomer }: CrmCustomerTab
             </th>
             <th className="px-3 py-3 text-[11px] font-semibold uppercase tracking-wider">Channel</th>
             <SortTh label="Status" k="status" />
+            <th className="px-3 py-3 text-[11px] font-semibold uppercase tracking-wider">
+              Onboarding
+            </th>
             <SortTh label="Open jobs" k="openJobs" />
             <SortTh label="Pipeline" k="estimatedValue" />
             <SortTh label="Total jobs" k="totalJobs" />
@@ -95,6 +100,17 @@ export function CrmCustomerTable({ customers, onSelectCustomer }: CrmCustomerTab
                 >
                   {statusLabel(customer.status)}
                 </span>
+              </td>
+              <td className="px-3 py-3">
+                {customer.onboardingStatus ? (
+                  <span
+                    className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${onboardingStatusStyle(customer.onboardingStatus)}`}
+                  >
+                    {ONBOARDING_STATUS_LABELS[customer.onboardingStatus]}
+                  </span>
+                ) : (
+                  <span className="text-xs text-muted">—</span>
+                )}
               </td>
               <td className="px-3 py-3 tabular-nums text-ink">{customer.openJobs}</td>
               <td className="px-3 py-3 tabular-nums font-medium text-ink">

@@ -1,9 +1,12 @@
 import { useMemo, useState } from 'react'
+import { useCrm } from '../../context/CrmContext'
 import type { CrmAccountStatus, CrmCustomer, CrmViewMode } from '../../types/crm'
+import { PARENT_COMPANY_OPTIONS } from '../../data/crmDefaults'
 import { CRM_STATUS_ORDER, filterCrmCustomers, statusLabel, statusStyle } from '../../utils/crm'
 import { CrmCustomerTable } from './CrmCustomerTable'
 import { CrmKanbanBoard } from './CrmKanbanBoard'
 import { IconSearch, IconX } from '../Icons'
+import { FormField, inputClass, selectClass } from './crmUi'
 
 interface CrmAccountsSectionProps {
   customers: CrmCustomer[]
@@ -11,14 +14,44 @@ interface CrmAccountsSectionProps {
 }
 
 export function CrmAccountsSection({ customers, onSelectCustomer }: CrmAccountsSectionProps) {
+  const { createAccount } = useCrm()
   const [view, setView] = useState<CrmViewMode>('table')
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<CrmAccountStatus | 'all'>('all')
+  const [showNewAccount, setShowNewAccount] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newParent, setNewParent] = useState('')
 
   const filtered = useMemo(
     () => filterCrmCustomers(customers, search, statusFilter),
     [customers, search, statusFilter],
   )
+
+  const handleCreate = () => {
+    const name = newName.trim()
+    if (!name) return
+    createAccount(name, newParent)
+    setNewName('')
+    setNewParent('')
+    setShowNewAccount(false)
+    onSelectCustomer({
+      name,
+      merchandiser: '—',
+      primaryChannel: '—',
+      totalJobs: 0,
+      openJobs: 0,
+      pendingApproval: 0,
+      overdueJobs: 0,
+      totalUnits: 0,
+      estimatedValue: 0,
+      lastActivityDate: '—',
+      status: 'quiet',
+      recentJobs: [],
+      isManual: true,
+      parentAccountName: newParent,
+      onboardingStatus: 'draft',
+    })
+  }
 
   return (
     <div
@@ -30,11 +63,19 @@ export function CrmAccountsSection({ customers, onSelectCustomer }: CrmAccountsS
           <div>
             <h3 className="text-sm font-semibold text-ink">Customer accounts</h3>
             <p className="mt-0.5 text-xs text-muted">
-              {filtered.length} account{filtered.length !== 1 ? 's' : ''} · click for details
+              {filtered.length} account{filtered.length !== 1 ? 's' : ''} · click for workspace
             </p>
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <button
+              type="button"
+              onClick={() => setShowNewAccount(true)}
+              className="rounded-lg bg-violet-600 px-3 py-2 text-sm font-semibold text-white hover:bg-violet-700"
+            >
+              + New account
+            </button>
+
             <div className="flex rounded-xl bg-surface p-1 ring-1 ring-inset ring-border">
               <button
                 type="button"
@@ -107,6 +148,65 @@ export function CrmAccountsSection({ customers, onSelectCustomer }: CrmAccountsS
           <CrmKanbanBoard customers={filtered} onSelectCustomer={onSelectCustomer} />
         )}
       </div>
+
+      {showNewAccount && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+          <button
+            type="button"
+            className="absolute inset-0 bg-ink/40"
+            aria-label="Close"
+            onClick={() => setShowNewAccount(false)}
+          />
+          <div className="relative z-10 w-full max-w-md rounded-2xl bg-card p-6 shadow-xl ring-1 ring-border">
+            <h3 className="text-lg font-bold text-ink">New account</h3>
+            <p className="mt-1 text-sm text-muted">
+              Create a customer account to start onboarding before the first job exists.
+            </p>
+            <div className="mt-4 space-y-4">
+              <FormField label="Account name" hint="Required">
+                <input
+                  className={inputClass}
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="Customer or artist name"
+                  autoFocus
+                />
+              </FormField>
+              <FormField label="Parent company" hint="Optional — e.g. Warner → artist">
+                <select
+                  className={selectClass}
+                  value={newParent}
+                  onChange={(e) => setNewParent(e.target.value)}
+                >
+                  <option value="">— None —</option>
+                  {PARENT_COMPANY_OPTIONS.filter((p) => p !== '—').map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowNewAccount(false)}
+                className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-ink"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleCreate}
+                disabled={!newName.trim()}
+                className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-50"
+              >
+                Create account
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

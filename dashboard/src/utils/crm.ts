@@ -1,6 +1,13 @@
 import { parse, isValid } from 'date-fns'
 import type { Job } from '../types/jobTracker'
-import type { CrmAccountStatus, CrmCustomer, CrmStats } from '../types/crm'
+import type {
+  CrmAccountStatus,
+  CrmCustomer,
+  CrmCustomerProfile,
+  CrmManualAccount,
+  CrmStats,
+} from '../types/crm'
+import { EMPTY_CRM_PROFILE } from '../types/crm'
 import { isJobOverdue } from './jobTracker'
 
 function parseUkDate(value: string): Date | null {
@@ -206,6 +213,70 @@ export function filterCrmCustomers(
       c.merchandiser.toLowerCase().includes(q) ||
       c.primaryChannel.toLowerCase().includes(q)
     )
+  })
+}
+
+export function mergeCrmCustomers(
+  jobCustomers: CrmCustomer[],
+  manualAccounts: CrmManualAccount[],
+  profiles: Record<string, CrmCustomerProfile>,
+): CrmCustomer[] {
+  const byName = new Map<string, CrmCustomer>()
+  for (const c of jobCustomers) {
+    byName.set(c.name.toLowerCase(), c)
+  }
+
+  for (const manual of manualAccounts) {
+    const key = manual.name.toLowerCase()
+    if (byName.has(key)) {
+      const existing = byName.get(key)!
+      byName.set(key, {
+        ...existing,
+        isManual: true,
+        parentAccountName: manual.parentAccountName || profiles[manual.name]?.parentAccountName,
+        onboardingStatus: profiles[manual.name]?.onboardingStatus,
+      })
+    } else {
+      const profile = profiles[manual.name] ?? EMPTY_CRM_PROFILE
+      byName.set(key, {
+        name: manual.name,
+        merchandiser: '—',
+        primaryChannel: '—',
+        totalJobs: 0,
+        openJobs: 0,
+        pendingApproval: 0,
+        overdueJobs: 0,
+        totalUnits: 0,
+        estimatedValue: 0,
+        lastActivityDate: new Date(manual.createdAt).toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+        }),
+        status: 'quiet',
+        recentJobs: [],
+        isManual: true,
+        parentAccountName: manual.parentAccountName || profile.parentAccountName,
+        onboardingStatus: profile.onboardingStatus,
+      })
+    }
+  }
+
+  for (const [key, customer] of byName) {
+    const profile = profiles[customer.name]
+    const onboardingStatus =
+      profile?.onboardingStatus ??
+      (customer.totalJobs > 0 ? ('verified' as const) : ('draft' as const))
+    byName.set(key, {
+      ...customer,
+      onboardingStatus,
+      parentAccountName: customer.parentAccountName || profile?.parentAccountName,
+    })
+  }
+
+  return [...byName.values()].sort((a, b) => {
+    if (b.estimatedValue !== a.estimatedValue) return b.estimatedValue - a.estimatedValue
+    return a.name.localeCompare(b.name)
   })
 }
 

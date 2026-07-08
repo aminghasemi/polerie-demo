@@ -1,19 +1,37 @@
 import { useMemo, useState } from 'react'
+import { useCrm } from '../context/CrmContext'
 import { useJobs } from '../context/JobsContext'
 import { JobDetailModal } from '../components/job-tracker/JobDetailModal'
 import { CrmAccountsSection } from '../components/crm/CrmAccountsSection'
 import { CrmCustomerDetailPanel } from '../components/crm/CrmCustomerDetailPanel'
 import { CrmKpiBar } from '../components/crm/CrmKpiBar'
-import { buildCrmCustomers, computeCrmStats } from '../utils/crm'
+import { buildCrmCustomers, computeCrmStats, mergeCrmCustomers } from '../utils/crm'
 import type { CrmCustomer } from '../types/crm'
 import type { Job } from '../types/jobTracker'
 
 export function CrmPage() {
   const { jobs, getJobByNumber } = useJobs()
+  const { manualAccounts, getProfile } = useCrm()
   const [selectedCustomer, setSelectedCustomer] = useState<CrmCustomer | null>(null)
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
 
-  const customers = useMemo(() => buildCrmCustomers(jobs), [jobs])
+  const jobCustomers = useMemo(() => buildCrmCustomers(jobs), [jobs])
+
+  const profiles = useMemo(() => {
+    const names = new Set([
+      ...jobCustomers.map((c) => c.name),
+      ...manualAccounts.map((a) => a.name),
+    ])
+    const out: Record<string, ReturnType<typeof getProfile>> = {}
+    for (const name of names) out[name] = getProfile(name)
+    return out
+  }, [jobCustomers, manualAccounts, getProfile])
+
+  const customers = useMemo(
+    () => mergeCrmCustomers(jobCustomers, manualAccounts, profiles),
+    [jobCustomers, manualAccounts, profiles],
+  )
+
   const stats = useMemo(() => computeCrmStats(customers), [customers])
 
   const openJob = (jobNumber: string) => {
@@ -34,9 +52,9 @@ export function CrmPage() {
       <div>
         <p className="text-xs font-semibold uppercase tracking-widest text-accent">Sales</p>
         <h2 className="mt-1 text-2xl font-bold text-ink">CRM</h2>
-        <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted">
-          Customer accounts, pipeline value, and job activity — linked to the Job Tracker and
-          production workflow.
+        <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-muted">
+          Merchandising CRM — onboarding, portfolio, samples, pricing, and POs linked to Job
+          Tracker. Open an account for the full tabbed workspace.
         </p>
       </div>
 

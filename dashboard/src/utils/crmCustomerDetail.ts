@@ -86,14 +86,21 @@ export function profileFieldEntries(
   profile: CrmCustomerProfile,
 ): { key: string; label: string; value: string }[] {
   const labels: Record<keyof CrmCustomerProfile, string> = {
+    companyName: 'Company name',
     contactName: 'Contact name',
     email: 'Email',
     phone: 'Phone',
     accountType: 'Account type',
-    address: 'Address',
+    deliveryAddress: 'Delivery address',
+    billingAddress: 'Billing address',
     website: 'Website',
     internalRef: 'Internal reference',
     paymentTerms: 'Payment terms',
+    portalUrl: 'Portal URL',
+    portalNotes: 'Portal notes',
+    onboardingStatus: 'Onboarding status',
+    onboardingFileName: 'Onboarding form',
+    parentAccountName: 'Parent company',
   }
   return (Object.keys(labels) as (keyof CrmCustomerProfile)[])
     .map((key) => ({
