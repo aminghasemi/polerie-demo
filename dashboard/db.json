@@ -1,0 +1,144 @@
+{
+  "crmProfiles": [
+    {
+      "id": "boohoo",
+      "customerName": "BoohooMAN",
+      "companyName": "BoohooMAN",
+      "contactName": "Sarah Mitchell",
+      "email": "sarah.mitchell@boohoo.com",
+      "phone": "+44 161 123 4567",
+      "accountType": "Retail",
+      "deliveryAddress": "Boohoo Distribution Centre\nManchester M1 2AB",
+      "billingAddress": "Boohoo Group plc\n49-51 Dale Street, Manchester M1 2HF",
+      "website": "https://www.boohoo.com",
+      "internalRef": "BOO-001",
+      "paymentTerms": "Net 30",
+      "portalUrl": "",
+      "portalNotes": "",
+      "onboardingStatus": "verified",
+      "onboardingFileName": "boohoo-onboarding-2026.pdf",
+      "parentAccountName": ""
+    },
+    {
+      "id": "bravado",
+      "customerName": "Bravado",
+      "companyName": "Bravado International",
+      "contactName": "James Chen",
+      "email": "james.chen@bravado.com",
+      "phone": "+44 20 7946 0958",
+      "accountType": "Music merch",
+      "deliveryAddress": "Bravado UK Warehouse\nLondon E14 5AB",
+      "billingAddress": "Bravado International Group\nLondon W1",
+      "website": "https://www.bravado.com",
+      "internalRef": "BRV-014",
+      "paymentTerms": "Net 45",
+      "portalUrl": "https://vendor.bravado.com",
+      "portalNotes": "PO extraction via vendor portal — login in 1Password",
+      "onboardingStatus": "credit_check",
+      "onboardingFileName": "bravado-onboarding-signed.pdf",
+      "parentAccountName": "Universal Music"
+    }
+  ],
+  "crmManualAccounts": [],
+  "crmNotes": [
+    {
+      "id": "note-1",
+      "customerName": "BoohooMAN",
+      "body": "Agreed 40% margin on DTG tees for Q3 drop. Pricing saved on Samples tab.",
+      "author": "Claire",
+      "createdAt": "2026-07-01T10:30:00.000Z"
+    }
+  ],
+  "crmPortfolios": [
+    {
+      "id": "portfolio-boohoo",
+      "customerName": "BoohooMAN",
+      "decorMethods": ["dtg", "dtf"],
+      "artworkLinks": ["https://drive.google.com/boohoo-artwork"],
+      "packagingNotes": "Individual polybags. No swing tags unless specified on order.",
+      "brandingNotes": "Remove all manufacturer labels.",
+      "blanks": [
+        {
+          "id": "blank-1",
+          "code": "STTU755",
+          "name": "Stanley/Stella Creator",
+          "techPackLink": "",
+          "notes": "Primary blank for mens tees"
+        }
+      ],
+      "suppliers": [
+        {
+          "id": "sup-1",
+          "category": "dtf",
+          "name": "Transfer Express",
+          "phone": "+44 20 1234 5678",
+          "notes": "Standard 3-day lead"
+        }
+      ]
+    }
+  ],
+  "crmSamples": [
+    {
+      "id": "sample-boohoo-1",
+      "customerName": "BoohooMAN",
+      "sampleNumber": 1,
+      "styleName": "Core Logo Tee",
+      "blankCode": "STTU755",
+      "blankName": "Stanley/Stella Creator",
+      "blankColour": "Black",
+      "decorMethod": "dtg",
+      "dtgDetails": { "placement": "front", "artworkNumbers": "ART-BOO-101" },
+      "screenDetails": {
+        "screensSetUp": false,
+        "numberOfScreens": "",
+        "numberOfColors": "",
+        "screenArtwork": ""
+      },
+      "backneckType": "none",
+      "brandingNotes": "Remove Stanley/Stella label",
+      "specialInstructions": "",
+      "deliveryLocations": ["Boohoo Distribution Centre, Manchester"],
+      "approvalStatus": "in_progress",
+      "iterationNumber": 1,
+      "jobNumber": "",
+      "poFileName": "",
+      "blankCost": "4.20",
+      "marginPct": "40",
+      "sellPrice": "5.88",
+      "frontPrice": "5.88",
+      "backPrice": "",
+      "invoiceOption": "include_production",
+      "iterations": [],
+      "readyForMerch": true
+    }
+  ],
+  "crmPricing": [
+    {
+      "id": "price-boohoo-1",
+      "customerName": "BoohooMAN",
+      "title": "Core Logo Tee — Q3 2026",
+      "jobNumber": "",
+      "sampleId": "sample-boohoo-1",
+      "blankCost": "4.20",
+      "marginPct": "40",
+      "sellPrice": "5.88",
+      "frontPrice": "5.88",
+      "backPrice": "",
+      "fileName": "",
+      "agreedAt": "2026-07-01",
+      "agreedBy": "Claire"
+    }
+  ],
+  "crmPurchaseOrders": [],
+  "crmChatMessages": [
+    {
+      "id": "chat-1",
+      "customerName": "BoohooMAN",
+      "contextType": "samples",
+      "contextId": "sample-boohoo-1",
+      "body": "@Izzy sample spec is ready — blank STTU755 black, DTG front only.",
+      "author": "Claire",
+      "createdAt": "2026-07-02T09:15:00.000Z"
+    }
+  ]
+}

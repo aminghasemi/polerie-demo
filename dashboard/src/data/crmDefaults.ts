@@ -1,12 +1,4 @@
-import type {
-  CrmPortfolio,
-  CrmSample,
-  CrmSampleIteration,
-  DecorMethod,
-  OnboardingStatus,
-  SampleApprovalStatus,
-} from '../types/crm'
-import { EMPTY_PORTFOLIO } from '../types/crm'
+import type { CrmSample, OnboardingStatus, SampleApprovalStatus } from '../types/crm'
 
 export const SUPPLIER_OPTIONS = {
   dtf: ['Transfer Express', 'Screen Transfer Co', 'Heat Press Supplies'],
@@ -85,70 +77,4 @@ export function calcSellPrice(blankCost: string, marginPct: string): string {
   const margin = parseFloat(marginPct)
   if (Number.isNaN(cost) || Number.isNaN(margin)) return ''
   return (cost * (1 + margin / 100)).toFixed(2)
-}
-
-/** Demo seed for first-time visitors — applied once per account name */
-export function demoSeedForAccount(accountName: string): {
-  portfolio?: CrmPortfolio
-  samples?: CrmSample[]
-} | null {
-  const key = accountName.toLowerCase()
-  if (!key.includes('warner') && !key.includes('boohoo')) return null
-
-  const portfolio: CrmPortfolio = {
-    ...EMPTY_PORTFOLIO,
-    decorMethods: ['dtg', 'screen'] as DecorMethod[],
-    artworkLinks: ['https://drive.example.com/artwork-folder'],
-    packagingNotes: 'Polybag, no hangers. Swing tags on request.',
-    brandingNotes: 'Remove Stanley/Stella labels; attach customer wash-care.',
-    blanks: [
-      {
-        id: 'demo-blank-1',
-        code: 'STTU755',
-        name: 'Stanley/Stella Creator',
-        techPackLink: 'https://drive.example.com/tech-pack-sttu755',
-        notes: 'Organic tee — primary blank',
-      },
-    ],
-    suppliers: [
-      {
-        id: 'demo-sup-1',
-        category: 'dtf',
-        name: 'Transfer Express',
-        phone: '+44 20 1234 5678',
-        notes: 'Standard DTF lead time 3 days',
-      },
-    ],
-  }
-
-  const sample: CrmSample = {
-    ...createEmptySample(1),
-    id: 'demo-sample-1',
-    styleName: 'Tour Merch Tee 2026',
-    blankCode: 'STTU755',
-    blankName: 'Stanley/Stella Creator',
-    blankColour: 'Black',
-    decorMethod: 'dtg',
-    dtgDetails: { placement: 'both', artworkNumbers: 'ART-001 front, ART-002 back' },
-    backneckType: 'print',
-    brandingNotes: 'Remove manufacturer label',
-    specialInstructions: 'Match Pantone 185C on front print',
-    approvalStatus: 'in_progress',
-    blankCost: '4.50',
-    marginPct: '40',
-    sellPrice: '6.30',
-    frontPrice: '3.50',
-    backPrice: '2.80',
-    readyForMerch: true,
-    iterations: [
-      {
-        version: 1,
-        changeDescription: 'Initial sample request from customer email',
-        author: 'Sales',
-        createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-      } satisfies CrmSampleIteration,
-    ],
-  }
-
-  return { portfolio, samples: [sample] }
 }

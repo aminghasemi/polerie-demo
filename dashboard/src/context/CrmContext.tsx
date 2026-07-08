@@ -2,11 +2,22 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react'
-import { createEmptySample, demoSeedForAccount } from '../data/crmDefaults'
+import {
+  CRM_DB_VERSION,
+  clearCrmLocalStorage,
+  fetchCrmDatabase,
+  getStoredDbVersion,
+  hydrateCrmState,
+  isLocalCrmEmpty,
+  markDbVersion,
+  type CrmHydratedState,
+} from '../api/crmDb'
+import { createEmptySample } from '../data/crmDefaults'
 import type {
   CrmChatMessage,
   CrmCustomerProfile,
@@ -29,7 +40,6 @@ const KEYS = {
   pricing: 'pixelgenie-crm-pricing',
   pos: 'pixelgenie-crm-pos',
   chat: 'pixelgenie-crm-chat',
-  seeded: 'pixelgenie-crm-demo-seeded',
 } as const
 
 function loadJson<T>(key: string, fallback: T): T {
@@ -72,7 +82,22 @@ function loadProfiles(): Record<string, CrmCustomerProfile> {
   return out
 }
 
+function applyHydratedState(state: CrmHydratedState) {
+  saveJson(KEYS.profiles, state.profiles)
+  saveJson(KEYS.notes, state.notes)
+  saveJson(KEYS.manualAccounts, state.manualAccounts)
+  saveJson(KEYS.portfolios, state.portfolios)
+  saveJson(KEYS.samples, state.samples)
+  saveJson(KEYS.pricing, state.pricing)
+  saveJson(KEYS.pos, state.pos)
+  saveJson(KEYS.chat, state.chat)
+  markDbVersion(CRM_DB_VERSION)
+}
+
 interface CrmContextValue {
+  ready: boolean
+  loading: boolean
+  loadError: string | null
   manualAccounts: CrmManualAccount[]
   createAccount: (name: string, parentAccountName?: string) => void
   getProfile: (customerName: string) => CrmCustomerProfile
@@ -107,32 +132,67 @@ interface CrmContextValue {
     author?: string,
   ) => CrmChatMessage
   getAllActivity: (customerName: string) => CrmChatMessage[]
-  ensureDemoSeed: (customerName: string) => void
   isOnboardingVerified: (customerName: string) => boolean
+  resetDemoData: () => Promise<void>
 }
 
 const CrmContext = createContext<CrmContextValue | null>(null)
 
 export function CrmProvider({ children }: { children: ReactNode }) {
-  const [profiles, setProfiles] = useState<Record<string, CrmCustomerProfile>>(loadProfiles)
-  const [notes, setNotes] = useState<CrmNote[]>(() => loadJson(KEYS.notes, []))
-  const [manualAccounts, setManualAccounts] = useState<CrmManualAccount[]>(() =>
-    loadJson(KEYS.manualAccounts, []),
-  )
-  const [portfolios, setPortfolios] = useState<Record<string, CrmPortfolio>>(() =>
-    loadJson(KEYS.portfolios, {}),
-  )
-  const [samples, setSamples] = useState<Record<string, CrmSample[]>>(() =>
-    loadJson(KEYS.samples, {}),
-  )
-  const [pricing, setPricing] = useState<Record<string, CrmPricingRecord[]>>(() =>
-    loadJson(KEYS.pricing, {}),
-  )
-  const [pos, setPos] = useState<Record<string, CrmPurchaseOrder[]>>(() => loadJson(KEYS.pos, {}))
-  const [chat, setChat] = useState<CrmChatMessage[]>(() => loadJson(KEYS.chat, []))
-  const [seededAccounts, setSeededAccounts] = useState<Set<string>>(
-    () => new Set(loadJson<string[]>(KEYS.seeded, [])),
-  )
+  const [ready, setReady] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [profiles, setProfiles] = useState<Record<string, CrmCustomerProfile>>({})
+  const [notes, setNotes] = useState<CrmNote[]>([])
+  const [manualAccounts, setManualAccounts] = useState<CrmManualAccount[]>([])
+  const [portfolios, setPortfolios] = useState<Record<string, CrmPortfolio>>({})
+  const [samples, setSamples] = useState<Record<string, CrmSample[]>>({})
+  const [pricing, setPricing] = useState<Record<string, CrmPricingRecord[]>>({})
+  const [pos, setPos] = useState<Record<string, CrmPurchaseOrder[]>>({})
+  const [chat, setChat] = useState<CrmChatMessage[]>([])
+
+  const loadFromStorage = useCallback(() => {
+    setProfiles(loadProfiles())
+    setNotes(loadJson(KEYS.notes, []))
+    setManualAccounts(loadJson(KEYS.manualAccounts, []))
+    setPortfolios(loadJson(KEYS.portfolios, {}))
+    setSamples(loadJson(KEYS.samples, {}))
+    setPricing(loadJson(KEYS.pricing, {}))
+    setPos(loadJson(KEYS.pos, {}))
+    setChat(loadJson(KEYS.chat, []))
+  }, [])
+
+  const hydrateFromDb = useCallback(async (force = false) => {
+    setLoading(true)
+    setLoadError(null)
+    try {
+      const shouldSeed =
+        force || isLocalCrmEmpty() || getStoredDbVersion() !== CRM_DB_VERSION
+      if (shouldSeed) {
+        const db = await fetchCrmDatabase()
+        const state = hydrateCrmState(db)
+        applyHydratedState(state)
+        loadFromStorage()
+      } else {
+        loadFromStorage()
+      }
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : 'Failed to load demo data')
+      loadFromStorage()
+    } finally {
+      setLoading(false)
+      setReady(true)
+    }
+  }, [loadFromStorage])
+
+  useEffect(() => {
+    void hydrateFromDb()
+  }, [hydrateFromDb])
+
+  const resetDemoData = useCallback(async () => {
+    clearCrmLocalStorage()
+    await hydrateFromDb(true)
+  }, [hydrateFromDb])
 
   const getProfile = useCallback(
     (customerName: string) => profiles[customerName] ?? { ...EMPTY_CRM_PROFILE },
@@ -157,26 +217,29 @@ export function CrmProvider({ children }: { children: ReactNode }) {
     [updateProfile],
   )
 
-  const createAccount = useCallback((name: string, parentAccountName = '') => {
-    const trimmed = name.trim()
-    if (!trimmed) return
-    setManualAccounts((prev) => {
-      if (prev.some((a) => a.name.toLowerCase() === trimmed.toLowerCase())) return prev
-      const account: CrmManualAccount = {
-        name: trimmed,
+  const createAccount = useCallback(
+    (name: string, parentAccountName = '') => {
+      const trimmed = name.trim()
+      if (!trimmed) return
+      setManualAccounts((prev) => {
+        if (prev.some((a) => a.name.toLowerCase() === trimmed.toLowerCase())) return prev
+        const account: CrmManualAccount = {
+          name: trimmed,
+          parentAccountName,
+          createdAt: new Date().toISOString(),
+        }
+        const next = [account, ...prev]
+        saveJson(KEYS.manualAccounts, next)
+        return next
+      })
+      updateProfile(trimmed, {
+        companyName: trimmed,
         parentAccountName,
-        createdAt: new Date().toISOString(),
-      }
-      const next = [account, ...prev]
-      saveJson(KEYS.manualAccounts, next)
-      return next
-    })
-    updateProfile(trimmed, {
-      companyName: trimmed,
-      parentAccountName,
-      onboardingStatus: 'draft',
-    })
-  }, [updateProfile])
+        onboardingStatus: 'draft',
+      })
+    },
+    [updateProfile],
+  )
 
   const getNotes = useCallback(
     (customerName: string) =>
@@ -379,33 +442,6 @@ export function CrmProvider({ children }: { children: ReactNode }) {
     [chat],
   )
 
-  const ensureDemoSeed = useCallback(
-    (customerName: string) => {
-      if (seededAccounts.has(customerName)) return
-      const seed = demoSeedForAccount(customerName)
-      if (!seed) return
-
-      if (seed.portfolio && !(customerName in portfolios)) {
-        updatePortfolio(customerName, seed.portfolio)
-      }
-      if (seed.samples && !(customerName in samples)) {
-        setSamples((prev) => {
-          const next = { ...prev, [customerName]: seed.samples! }
-          saveJson(KEYS.samples, next)
-          return next
-        })
-      }
-
-      setSeededAccounts((prev) => {
-        const next = new Set(prev)
-        next.add(customerName)
-        saveJson(KEYS.seeded, [...next])
-        return next
-      })
-    },
-    [portfolios, samples, seededAccounts, updatePortfolio],
-  )
-
   const isOnboardingVerified = useCallback(
     (customerName: string) => getProfile(customerName).onboardingStatus === 'verified',
     [getProfile],
@@ -413,6 +449,9 @@ export function CrmProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(
     () => ({
+      ready,
+      loading,
+      loadError,
       manualAccounts,
       createAccount,
       getProfile,
@@ -438,10 +477,13 @@ export function CrmProvider({ children }: { children: ReactNode }) {
       getChatMessages,
       addChatMessage,
       getAllActivity,
-      ensureDemoSeed,
       isOnboardingVerified,
+      resetDemoData,
     }),
     [
+      ready,
+      loading,
+      loadError,
       manualAccounts,
       createAccount,
       getProfile,
@@ -467,8 +509,8 @@ export function CrmProvider({ children }: { children: ReactNode }) {
       getChatMessages,
       addChatMessage,
       getAllActivity,
-      ensureDemoSeed,
       isOnboardingVerified,
+      resetDemoData,
     ],
   )
 

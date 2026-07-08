@@ -1,7 +1,15 @@
 import type { CrmCustomerProfile, OnboardingStatus } from '../../../types/crm'
 import { ONBOARDING_STATUS_LABELS } from '../../../types/crm'
 import { onboardingStatusStyle, PARENT_COMPANY_OPTIONS } from '../../../data/crmDefaults'
-import { FormField, SectionCard, inputClass, selectClass } from '../crmUi'
+import { FormField, GhostButton, PrimaryButton, SectionCard, inputClass, selectClass } from '../crmUi'
+
+const ONBOARDING_STEPS: OnboardingStatus[] = [
+  'draft',
+  'sent',
+  'received',
+  'credit_check',
+  'verified',
+]
 
 interface CrmHomeTabProps {
   draft: CrmCustomerProfile
@@ -12,6 +20,10 @@ interface CrmHomeTabProps {
   onStatusChange: (status: OnboardingStatus) => void
 }
 
+function stepIndex(status: OnboardingStatus) {
+  return ONBOARDING_STEPS.indexOf(status)
+}
+
 export function CrmHomeTab({
   draft,
   dirty,
@@ -20,22 +32,56 @@ export function CrmHomeTab({
   onReset,
   onStatusChange,
 }: CrmHomeTabProps) {
+  const currentStep = stepIndex(draft.onboardingStatus)
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <SectionCard
         title="Onboarding"
-        description="Customer onboarding form and credit-check workflow. Portfolio and Samples unlock when verified."
+        description="Portfolio, Samples, and Pricing unlock once credit check is verified."
+        compact
       >
-        <div className="flex flex-wrap items-center gap-3">
+        <ol className="flex flex-wrap gap-2 sm:gap-0 sm:justify-between">
+          {ONBOARDING_STEPS.map((step, i) => {
+            const done = i < currentStep
+            const active = i === currentStep
+            return (
+              <li
+                key={step}
+                className={`flex items-center gap-2 rounded-xl px-2 py-1.5 text-xs sm:flex-1 sm:flex-col sm:px-1 ${
+                  active ? 'bg-violet-50 ring-1 ring-violet-200' : ''
+                }`}
+              >
+                <span
+                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                    done
+                      ? 'bg-emerald-500 text-white'
+                      : active
+                        ? 'bg-violet-600 text-white'
+                        : 'bg-surface text-muted ring-1 ring-border'
+                  }`}
+                >
+                  {done ? '✓' : i + 1}
+                </span>
+                <span className={`font-medium ${active ? 'text-ink' : 'text-muted'}`}>
+                  {ONBOARDING_STATUS_LABELS[step]}
+                </span>
+              </li>
+            )
+          })}
+        </ol>
+
+        <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-border pt-4">
           <span
-            className={`inline-flex rounded-md px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${onboardingStatusStyle(draft.onboardingStatus)}`}
+            className={`inline-flex rounded-lg px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${onboardingStatusStyle(draft.onboardingStatus)}`}
           >
             {ONBOARDING_STATUS_LABELS[draft.onboardingStatus]}
           </span>
           <select
-            className={`${selectClass} max-w-xs`}
+            className={`${selectClass} max-w-[200px]`}
             value={draft.onboardingStatus}
             onChange={(e) => onStatusChange(e.target.value as OnboardingStatus)}
+            aria-label="Update onboarding status"
           >
             {(Object.keys(ONBOARDING_STATUS_LABELS) as OnboardingStatus[]).map((s) => (
               <option key={s} value={s}>
@@ -46,7 +92,7 @@ export function CrmHomeTab({
         </div>
 
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <FormField label="Onboarding form" hint="Upload signed PDF (demo: filename only)">
+          <FormField label="Onboarding form" hint="Demo stores filename only">
             <input
               type="file"
               accept=".pdf,.doc,.docx"
@@ -58,22 +104,22 @@ export function CrmHomeTab({
               }}
             />
             {draft.onboardingFileName && (
-              <p className="mt-1 text-xs text-muted">Attached: {draft.onboardingFileName}</p>
+              <p className="mt-1.5 truncate text-xs text-muted">{draft.onboardingFileName}</p>
             )}
           </FormField>
-          <FormField label="Airtable credit check" hint="Demo: advance status manually above">
-            <p className="rounded-lg bg-card px-3 py-2 text-sm text-muted ring-1 ring-border">
+          <FormField label="Credit check">
+            <p className="rounded-xl bg-surface px-3 py-2.5 text-sm text-muted ring-1 ring-border">
               {draft.onboardingStatus === 'credit_check'
-                ? 'Pending Ahmed / accounts team'
+                ? 'With accounts — pending verification'
                 : draft.onboardingStatus === 'verified'
-                  ? 'Credit verified — proceed with orders'
-                  : 'Upload form to start credit check'}
+                  ? 'Verified — proceed with orders'
+                  : 'Upload signed form to continue'}
             </p>
           </FormField>
         </div>
       </SectionCard>
 
-      <SectionCard title="Company & contact">
+      <SectionCard title="Company & contact" compact>
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField label="Company name">
             <input
@@ -151,7 +197,7 @@ export function CrmHomeTab({
         </div>
       </SectionCard>
 
-      <SectionCard title="Addresses">
+      <SectionCard title="Addresses" compact>
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField label="Delivery address">
             <textarea
@@ -172,7 +218,8 @@ export function CrmHomeTab({
 
       <SectionCard
         title="Client portal"
-        description="For larger clients using vendor portals to submit invoices or extract POs."
+        description="Vendor portals for PO extraction or invoice upload."
+        compact
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField label="Portal URL" className="sm:col-span-2">
@@ -196,20 +243,8 @@ export function CrmHomeTab({
 
       {dirty && (
         <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={onSave}
-            className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700"
-          >
-            Save Home details
-          </button>
-          <button
-            type="button"
-            onClick={onReset}
-            className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-ink hover:bg-surface"
-          >
-            Discard
-          </button>
+          <PrimaryButton onClick={onSave}>Save Home details</PrimaryButton>
+          <GhostButton onClick={onReset}>Discard</GhostButton>
         </div>
       )}
     </div>
